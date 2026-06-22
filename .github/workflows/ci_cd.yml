@@ -1,0 +1,191 @@
+# ── Trigger conditions ─────────────────────────────────────
+on:
+  push:
+    branches: ["main"]
+    
+  # Only run on pushes to "main" — not feature branches
+      # Feature branches run tests locally; only merged code auto-deploys
+
+  pull_request:
+    branches: ["main"]
+    
+  # Run tests on PRs too — catch bugs before they merge to main
+
+
+
+# ── Environment variables ─────────────────────────────────
+env:
+  REGISTRY: ghcr.io                    
+# GitHub Container Registry
+
+  IMAGE_NAME: farzeen-05/spam-classifier
+
+
+# ══════════════════════════════════════════════
+   JOB 1: TEST
+   Runs unit + integration tests
+════════════════════════════════════════════════
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+  # runs-on: which virtual machine to use
+      # ubuntu-latest: free GitHub-hosted runner (2 CPU, 7GB RAM)
+      # Each job gets a fresh VM — nothing carries over between jobs
+
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+  # "uses": run a pre-built GitHub Action
+          # actions/checkout: clones your repo into the runner
+          # Without this, the runner VM has no code to work with
+
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+          
+  # cache: "pip" caches downloaded packages between runs
+            # If requirements.txt hasn't changed, pip packages are restored in 20s
+            # Without cache, pip install takes 2-3 minutes every run
+
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Train model (needed for API tests)
+        run: |
+          mkdir -p model
+          python src/train.py
+        
+  # | (pipe): allows multi-line shell commands
+          # mkdir -p model: create "model/" dir, -p = don't fail if exists
+          # We need to train before testing the API — the API loads the model file
+
+
+      - name: Run tests
+        run: pytest tests/ -v --tb=short
+        
+  # -v: verbose — print each test name and PASS/FAIL
+          # --tb=short: short traceback on failure — easier to read in CI logs
+          # If any test fails, pytest exits with code 1 → GitHub marks step FAILED
+          # A failed step stops the workflow — Docker build never runs
+
+
+
+# ══════════════════════════════════════════════
+   JOB 2: BUILD AND PUSH DOCKER IMAGE
+   Only runs if tests passed
+════════════════════════════════════════════════
+  build-and-push:
+    needs: test
+    
+  # "needs": this job only starts if "test" job completed successfully
+      # This is the key dependency chain that makes CI/CD safe
+
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    
+  # Only build/push Docker images for pushes to main, not PRs
+      # PRs only run the "test" job — saves registry storage
+
+
+    permissions:
+      contents: read
+      packages: write
+      
+  # Grant this job permission to push to GitHub Container Registry
+
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+          
+  # secrets.GITHUB_TOKEN: auto-generated token for this run
+            # GitHub creates it automatically — you don't need to create it
+            # It expires after the workflow ends — security best practice
+
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: |
+            ghcr.io/${{ env.IMAGE_NAME }}:latest
+            ghcr.io/${{ env.IMAGE_NAME }}:${{ github.sha }}
+          
+  # TWO TAGS:
+            # :latest — always points to the most recent successful build
+            # :${{ github.sha }} — the exact Git commit hash
+            # The SHA tag means you can always deploy the EXACT version from any commit
+            # If "latest" has a bug, roll back to the previous SHA tag
+
+
+
+# ══════════════════════════════════════════════
+   JOB 3: DEPLOY TO AWS EC2
+   SSH into server, pull new image, restart
+════════════════════════════════════════════════
+  deploy:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy to EC2
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          
+  # secrets.EC2_HOST: your EC2 public IP, stored in GitHub Secrets
+            # Go to Settings → Secrets → Actions → New secret
+            # NEVER hardcode IP addresses in workflow files
+
+          username: ubuntu
+          key: ${{ secrets.EC2_SSH_KEY }}
+          
+  # secrets.EC2_SSH_KEY: your EC2 private key content (.pem file)
+            # The action uses this to SSH authenticate without a password
+
+          script: |
+            # Pull the latest image
+            docker pull ghcr.io/${{ env.IMAGE_NAME }}:latest
+
+            # Stop and remove the old container
+            docker stop spam-api || true
+            docker rm   spam-api || true
+            
+  # || true: if the container doesn't exist, don't fail
+              # On first deploy, there's no container to stop — this handles that
+
+
+            # Start new container
+            docker run -d \
+              --name spam-api \
+              -p 8000:8000 \
+              --restart unless-stopped \
+              ghcr.io/${{ env.IMAGE_NAME }}:latest
+            
+  # -d: detached mode — runs in background (doesn't block SSH session)
+              # --restart unless-stopped: if server reboots, container auto-restarts
+              # -p 8000:8000: host port 8000 → container port 8000
+
+
+            # Verify deployment
+            sleep 5
+            curl -f http://localhost:8000/health
+            
+  # sleep 5: give the container 5s to start
+              # curl -f: fails with non-zero exit code if HTTP response is not 2xx
+              # If /health returns 503 (model not loaded), this fails the CI step
+              # This catches deployment failures before users hit the broken service

@@ -1,0 +1,23 @@
+artifact_path: file:C:/Users/ADMIN/Desktop/spam_classifier/mlruns/1/models/m-8e3a282850994f95a7afa4e019358f2e/artifacts
+flavors:
+  python_function:
+    env:
+      conda: conda.yaml
+      virtualenv: python_env.yaml
+    loader_module: mlflow.sklearn
+    model_path: model.skops
+    predict_fn: predict
+    python_version: 3.14.3
+  sklearn:
+    code: null
+    pickled_model: model.skops
+    serialization_format: skops
+    sklearn_version: 1.9.0
+    skops_trusted_types: null
+mlflow_version: 3.14.0
+model_id: m-8e3a282850994f95a7afa4e019358f2e
+model_size_bytes: 4613136
+model_uuid: m-8e3a282850994f95a7afa4e019358f2e
+prompts: null
+run_id: 15142de97dcf488eadb2e7958f21d298
+utc_time_created: '2026-06-22 11:54:19.978445'

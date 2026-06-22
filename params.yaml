@@ -1,0 +1,9 @@
+data:
+  test_size: 0.2
+  random_state: 42
+
+features:
+  max_features: 5000
+
+model:
+  alpha: 1.0

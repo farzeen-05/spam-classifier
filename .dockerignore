@@ -1,0 +1,16 @@
+.git/
+.github/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+tests/
+notebooks/
+mlruns/
+.env
+*.md
+.dvc/
+dvc.yaml
+.vscode/
+.idea/
+predictions.db
