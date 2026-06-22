@@ -1,0 +1,23 @@
+stages:
+  preprocess:
+    cmd: python src/preprocess.py
+    deps:
+      - src/preprocess.py
+      - data/raw/spam.csv
+    outs:
+      - data/processed/spam.csv
+
+  train:
+    cmd: python src/train.py
+    deps:
+      - src/train.py
+      - data/processed/spam.csv
+      - params.yaml
+    outs:
+      - model/pipeline.pkl
+    metrics:
+      - metrics.json:
+          cache: false
+    params:
+      - model.alpha
+      - features.max_features

@@ -1,0 +1,46 @@
+schema: '2.0'
+stages:
+  preprocess:
+    cmd: python src/preprocess.py
+    deps:
+    - path: data/raw/spam.csv
+      hash: md5
+      md5: 008dcf9ca6aab621d3b3831db6815867
+      size: 503663
+    - path: src/preprocess.py
+      hash: md5
+      md5: 1494dd818aefd8a014afc83d5710ecea
+      size: 391
+    outs:
+    - path: data/processed/spam.csv
+      hash: md5
+      md5: 7d14b7d9edd7b7a3ee35269744ef9010
+      size: 443686
+  train:
+    cmd: python src/train.py
+    deps:
+    - path: data/processed/spam.csv
+      hash: md5
+      md5: 7d14b7d9edd7b7a3ee35269744ef9010
+      size: 443686
+    - path: params.yaml
+      hash: md5
+      md5: 78f48e96204f71ccee0dd9e0ff15688b
+      size: 102
+    - path: src/train.py
+      hash: md5
+      md5: db2dd0964c046f3f8e48070788f22b7a
+      size: 2425
+    params:
+      params.yaml:
+        features.max_features: 5000
+        model.alpha: 0.5
+    outs:
+    - path: metrics.json
+      hash: md5
+      md5: 13bf4592f6e7adb3eb53d9274217a30c
+      size: 63
+    - path: model/pipeline.pkl
+      hash: md5
+      md5: dccc88fe6dc4f7de54e7eab9dc658fba
+      size: 340594
