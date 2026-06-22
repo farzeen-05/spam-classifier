@@ -6,4 +6,4 @@ features:
   max_features: 5000
 
 model:
-  alpha: 1.0
+  alpha: 0.5
