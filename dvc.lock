@@ -25,7 +25,7 @@ stages:
       size: 443686
     - path: params.yaml
       hash: md5
-      md5: 78f48e96204f71ccee0dd9e0ff15688b
+      md5: 6393ef8d22472b08520b9a2baf5415e3
       size: 102
     - path: src/train.py
       hash: md5
@@ -34,13 +34,13 @@ stages:
     params:
       params.yaml:
         features.max_features: 5000
-        model.alpha: 0.5
+        model.alpha: 0.1
     outs:
     - path: metrics.json
       hash: md5
-      md5: 13bf4592f6e7adb3eb53d9274217a30c
+      md5: c0f5a3b328b5364992519f996d4e00d4
       size: 63
     - path: model/pipeline.pkl
       hash: md5
-      md5: dccc88fe6dc4f7de54e7eab9dc658fba
+      md5: 05811e91c646bbac1abdd33de564ec19
       size: 340594
