@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Spam Classifier</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Segoe UI', sans-serif;
+    background: #0f172a;
+    color: #e2e8f0;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .card {
+    background: #1e293b;
+    border: 1px solid #334155;
+    border-radius: 16px;
+    padding: 40px;
+    width: 100%;
+    max-width: 480px;
+    box-shadow: 0 25px 50px rgba(0,0,0,0.4);
+  }
+  h1 {
+    font-size: 24px;
+    font-weight: 700;
+    margin-bottom: 6px;
+    color: #f1f5f9;
+  }
+  .subtitle {
+    color: #94a3b8;
+    font-size: 14px;
+    margin-bottom: 32px;
+  }
+  label {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    color: #94a3b8;
+    margin-bottom: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  input, textarea {
+    width: 100%;
+    background: #0f172a;
+    border: 1px solid #334155;
+    border-radius: 8px;
+    padding: 12px 14px;
+    color: #e2e8f0;
+    font-size: 14px;
+    font-family: inherit;
+    margin-bottom: 16px;
+    transition: border-color 0.2s;
+    outline: none;
+  }
+  input:focus, textarea:focus { border-color: #3b82f6; }
+  textarea { resize: vertical; min-height: 100px; }
+  button {
+    width: 100%;
+    background: #3b82f6;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: 13px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s;
+    font-family: inherit;
+  }
+  button:hover { background: #2563eb; }
+  button:disabled { background: #334155; cursor: not-allowed; }
+  .error {
+    background: rgba(239,68,68,0.1);
+    border: 1px solid rgba(239,68,68,0.3);
+    color: #fca5a5;
+    padding: 10px 14px;
+    border-radius: 8px;
+    font-size: 13px;
+    margin-bottom: 16px;
+    display: none;
+  }
+  .result {
+    margin-top: 20px;
+    padding: 20px;
+    border-radius: 12px;
+    text-align: center;
+    display: none;
+  }
+  .result.spam {
+    background: rgba(239,68,68,0.1);
+    border: 1px solid rgba(239,68,68,0.3);
+  }
+  .result.ham {
+    background: rgba(34,197,94,0.1);
+    border: 1px solid rgba(34,197,94,0.3);
+  }
+  .result-label {
+    font-size: 28px;
+    font-weight: 800;
+    margin-bottom: 8px;
+  }
+  .result.spam .result-label { color: #f87171; }
+  .result.ham .result-label { color: #4ade80; }
+  .result-meta {
+    font-size: 13px;
+    color: #94a3b8;
+  }
+  .logout {
+    background: none;
+    border: 1px solid #334155;
+    color: #94a3b8;
+    font-size: 13px;
+    padding: 6px 14px;
+    border-radius: 6px;
+    width: auto;
+    cursor: pointer;
+    margin-bottom: 20px;
+  }
+  .logout:hover { border-color: #f87171; color: #f87171; background: none; }
+  .user-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 24px;
+  }
+  .user-name { font-size: 13px; color: #94a3b8; }
+  .badge {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 4px;
+  }
+  .badge-blue { background: rgba(59,130,246,0.15); color: #60a5fa; }
+</style>
+</head>
+<body>
+
+<div class="card" id="login-card">
+  <div class="badge badge-blue">🔐 Secure Login</div>
+  <h1>Spam Classifier</h1>
+  <p class="subtitle">Sign in to access the spam detection API</p>
+  <div class="error" id="login-error"></div>
+  <label>Username</label>
+  <input type="text" id="username" placeholder="Enter username" />
+  <label>Password</label>
+  <input type="password" id="password" placeholder="Enter password" />
+  <button onclick="login()">Sign In</button>
+  <p style="margin-top:16px;font-size:12px;color:#475569;text-align:center">
+    Demo: username = <strong>farzeen</strong> / password = <strong>password123</strong>
+  </p>
+</div>
+
+<div class="card" id="app-card" style="display:none">
+  <div class="user-bar">
+    <div>
+      <div class="badge badge-blue">✅ Authenticated</div>
+      <div class="user-name">Logged in as <strong id="logged-user"></strong></div>
+    </div>
+    <button class="logout" onclick="logout()">Logout</button>
+  </div>
+  <h1>Spam Detector</h1>
+  <p class="subtitle" style="margin-bottom:24px">Paste any email or SMS text below</p>
+  <div class="error" id="predict-error"></div>
+  <label>Message Text</label>
+  <textarea id="message" placeholder="e.g. Congratulations! You won a free prize. Click here to claim..."></textarea>
+  <button onclick="predict()" id="predict-btn">Analyze Message</button>
+  <div class="result" id="result">
+    <div class="result-label" id="result-label"></div>
+    <div class="result-meta" id="result-meta"></div>
+  </div>
+</div>
+
+<script>
+  const API = '';
+  let token = localStorage.getItem('token');
+  let username = localStorage.getItem('username');
+
+  if (token) showApp();
+
+  async function login() {
+    const u = document.getElementById('username').value.trim();
+    const p = document.getElementById('password').value.trim();
+    const err = document.getElementById('login-error');
+    err.style.display = 'none';
+
+    if (!u || !p) {
+      err.textContent = 'Please enter username and password';
+      err.style.display = 'block';
+      return;
+    }
+
+    try {
+      const res = await fetch(`${API}/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: u, password: p })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || 'Login failed');
+      token = data.access_token;
+      username = u;
+      localStorage.setItem('token', token);
+      localStorage.setItem('username', username);
+      showApp();
+    } catch (e) {
+      err.textContent = e.message;
+      err.style.display = 'block';
+    }
+  }
+
+  function showApp() {
+    document.getElementById('login-card').style.display = 'none';
+    document.getElementById('app-card').style.display = 'block';
+    document.getElementById('logged-user').textContent = username;
+  }
+
+  function logout() {
+    localStorage.removeItem('token');
+    localStorage.removeItem('username');
+    token = null;
+    document.getElementById('login-card').style.display = 'block';
+    document.getElementById('app-card').style.display = 'none';
+    document.getElementById('result').style.display = 'none';
+  }
+
+  async function predict() {
+    const text = document.getElementById('message').value.trim();
+    const err = document.getElementById('predict-error');
+    const btn = document.getElementById('predict-btn');
+    const result = document.getElementById('result');
+    err.style.display = 'none';
+    result.style.display = 'none';
+
+    if (!text) {
+      err.textContent = 'Please enter a message';
+      err.style.display = 'block';
+      return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = 'Analyzing...';
+
+    try {
+      const res = await fetch(`${API}/predict`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ text })
+      });
+
+      if (res.status === 401) {
+        logout();
+        return;
+      }
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || 'Prediction failed');
+
+      const isSpam = data.label === 'spam';
+      result.className = `result ${data.label}`;
+      document.getElementById('result-label').textContent = isSpam ? '🚨 SPAM' : '✅ HAM';
+      document.getElementById('result-meta').textContent =
+        `Confidence: ${(data.confidence * 100).toFixed(1)}% · Latency: ${data.latency_ms}ms`;
+      result.style.display = 'block';
+    } catch (e) {
+      err.textContent = e.message;
+      err.style.display = 'block';
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Analyze Message';
+    }
+  }
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && document.getElementById('login-card').style.display !== 'none') login();
+  });
+</script>
+</body>
+</html>

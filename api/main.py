@@ -1,127 +1,111 @@
+import mlflow
+import mlflow.sklearn
+import pandas as pd
+import yaml
 import pickle
+import json
 import time
-from fastapi import FastAPI, HTTPException
+import sqlite3
+from datetime import datetime, timedelta
+from fastapi import FastAPI, HTTPException, Depends
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
+import jwt
 
-  # Pydantic: validates request data automatically
-  # If the user sends {"text": 123} (number instead of string), FastAPI
-  # rejects it with a clear error message before your code even runs
+app = FastAPI(title="Spam Classifier API", version="1.0.0")
 
-
-
-# ── App initialisation ────────────────────────────────────
-app = FastAPI(
-    title="Spam Classifier API",
-    version="1.0.0",
-    description="Classifies text as spam or ham"
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
-  # FastAPI auto-generates docs at /docs (Swagger UI) and /redoc
-  # The CI pipeline can hit /docs to verify the API is alive after deployment
+# ── Config ─────────────────────────────────────────────────
+SECRET_KEY = "spam-classifier-secret-key-2026"
+ALGORITHM = "HS256"
+TOKEN_EXPIRE_HOURS = 24
 
+# ── Fake user DB (in production use real DB) ───────────────
+USERS = {
+    "farzeen": "password123",
+    "admin": "admin123"
+}
 
-
-# ── Load model at startup ─────────────────────────────────
-
-  # This runs ONCE when the container starts — not on every request
-  # Loading a model takes 50-200ms. If you loaded on every request,
-  # your API would be extremely slow (500ms+ per prediction)
-
-
-MODEL_PATH = "model/pipeline.pkl"
-
+# ── Load model ─────────────────────────────────────────────
 try:
-    with open(MODEL_PATH, "rb") as f:  
-# "rb" = read bytes
-
+    with open("model/pipeline.pkl", "rb") as f:
         model = pickle.load(f)
-    print("✅ Model loaded successfully")
+    print("✅ Model loaded")
 except FileNotFoundError:
-    print("❌ Model file not found — train first with: python src/train.py")
     model = None
-    
-  # Don't crash the app — let /health report the issue
-      # In CI, a missing model should cause a test failure, not a crash loop
 
+security = HTTPBearer()
 
+# ── Schemas ────────────────────────────────────────────────
+class LoginRequest(BaseModel):
+    username: str
+    password: str
 
-# ── Request/Response schemas ──────────────────────────────
 class PredictRequest(BaseModel):
-    text: str                 
-# Required: the email/SMS text
-
+    text: str
 
 class PredictResponse(BaseModel):
-    label: str                
-# "spam" or "ham"
+    label: str
+    confidence: float
+    latency_ms: float
 
-    confidence: float         
-# Probability 0.0 → 1.0
+# ── JWT helpers ────────────────────────────────────────────
+def create_token(username: str) -> str:
+    payload = {
+        "sub": username,
+        "exp": datetime.utcnow() + timedelta(hours=TOKEN_EXPIRE_HOURS)
+    }
+    return jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
 
-    latency_ms: float         
-# How long prediction took — for monitoring
+def verify_token(credentials: HTTPAuthorizationCredentials = Depends(security)):
+    try:
+        payload = jwt.decode(
+            credentials.credentials,
+            SECRET_KEY,
+            algorithms=[ALGORITHM]
+        )
+        return payload["sub"]
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(status_code=401, detail="Token expired")
+    except jwt.InvalidTokenError:
+        raise HTTPException(status_code=401, detail="Invalid token")
 
-
-
-# ── Health check endpoint ─────────────────────────────────
+# ── Routes ─────────────────────────────────────────────────
 @app.get("/health")
 def health():
-    
-  # CI/CD hits this endpoint after deployment to verify the app is alive
-      # Load balancers also use this to route traffic away from unhealthy pods
-      # Kubernetes liveness probe checks this every 10 seconds
+    return {"status": "ok", "model_ready": model is not None}
 
-    return {
-        "status": "ok" if model is not None else "model_not_loaded",
-        "model_ready": model is not None
-    }
+@app.post("/login")
+def login(request: LoginRequest):
+    if request.username not in USERS:
+        raise HTTPException(status_code=401, detail="Invalid credentials")
+    if USERS[request.username] != request.password:
+        raise HTTPException(status_code=401, detail="Invalid credentials")
+    token = create_token(request.username)
+    return {"access_token": token, "token_type": "bearer"}
 
-
-# ── Prediction endpoint ───────────────────────────────────
 @app.post("/predict", response_model=PredictResponse)
-def predict(request: PredictRequest):
-    
-  # @app.post: this route handles POST requests to /predict
-      # response_model: FastAPI validates output matches PredictResponse schema
-
-
+def predict(request: PredictRequest, username: str = Depends(verify_token)):
     if model is None:
         raise HTTPException(status_code=503, detail="Model not loaded")
-        
-  # 503 = Service Unavailable. 503 tells the caller to retry later.
-          # 500 would mean "I crashed" — different semantic meaning.
-
-
     if not request.text.strip():
         raise HTTPException(status_code=400, detail="Text cannot be empty")
-        
-  # 400 = Bad Request. Caller's fault — they sent bad data.
-
 
     start = time.perf_counter()
-    
-  # perf_counter: high-resolution timer (nanosecond precision)
-      # More accurate than time.time() for measuring latency
-
-
     proba = model.predict_proba([request.text])[0]
-    
-  # predict_proba returns [[P(ham), P(spam)]] — a 2D array
-      # [0] gets the first (only) row
-      # Result: array([0.03, 0.97]) means 97% spam
-
-
-    classes = model.classes_         
-# ["ham", "spam"] — order from training
-
-    pred_idx = proba.argmax()        
-# Index of highest probability
-
-    label    = classes[pred_idx]     
-# "spam" or "ham"
-
+    classes = model.classes_
+    pred_idx = proba.argmax()
+    label = classes[pred_idx]
     confidence = float(proba[pred_idx])
-
     latency_ms = (time.perf_counter() - start) * 1000
 
     return PredictResponse(
@@ -129,3 +113,10 @@ def predict(request: PredictRequest):
         confidence=round(confidence, 4),
         latency_ms=round(latency_ms, 2)
     )
+
+# ── Serve frontend ─────────────────────────────────────────
+app.mount("/static", StaticFiles(directory="static"), name="static")
+
+@app.get("/")
+def root():
+    return FileResponse("static/index.html")
