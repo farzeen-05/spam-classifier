@@ -3,288 +3,1461 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Spam Classifier</title>
+<title>SpamGuard — Classifier</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body {
-    font-family: 'Segoe UI', sans-serif;
-    background: #0f172a;
-    color: #e2e8f0;
-    min-height: 100vh;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-  .card {
-    background: #1e293b;
-    border: 1px solid #334155;
-    border-radius: 16px;
-    padding: 40px;
-    width: 100%;
-    max-width: 480px;
-    box-shadow: 0 25px 50px rgba(0,0,0,0.4);
-  }
-  h1 {
-    font-size: 24px;
-    font-weight: 700;
-    margin-bottom: 6px;
-    color: #f1f5f9;
-  }
-  .subtitle {
-    color: #94a3b8;
-    font-size: 14px;
-    margin-bottom: 32px;
-  }
-  label {
-    display: block;
-    font-size: 13px;
-    font-weight: 600;
-    color: #94a3b8;
-    margin-bottom: 6px;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-  }
-  input, textarea {
-    width: 100%;
-    background: #0f172a;
-    border: 1px solid #334155;
-    border-radius: 8px;
-    padding: 12px 14px;
-    color: #e2e8f0;
-    font-size: 14px;
-    font-family: inherit;
-    margin-bottom: 16px;
-    transition: border-color 0.2s;
-    outline: none;
-  }
-  input:focus, textarea:focus { border-color: #3b82f6; }
-  textarea { resize: vertical; min-height: 100px; }
-  button {
-    width: 100%;
-    background: #3b82f6;
-    color: #fff;
-    border: none;
-    border-radius: 8px;
-    padding: 13px;
-    font-size: 15px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: background 0.2s;
-    font-family: inherit;
-  }
-  button:hover { background: #2563eb; }
-  button:disabled { background: #334155; cursor: not-allowed; }
-  .error {
-    background: rgba(239,68,68,0.1);
-    border: 1px solid rgba(239,68,68,0.3);
-    color: #fca5a5;
-    padding: 10px 14px;
-    border-radius: 8px;
-    font-size: 13px;
-    margin-bottom: 16px;
-    display: none;
-  }
-  .result {
-    margin-top: 20px;
-    padding: 20px;
-    border-radius: 12px;
-    text-align: center;
-    display: none;
-  }
-  .result.spam {
-    background: rgba(239,68,68,0.1);
-    border: 1px solid rgba(239,68,68,0.3);
-  }
-  .result.ham {
-    background: rgba(34,197,94,0.1);
-    border: 1px solid rgba(34,197,94,0.3);
-  }
-  .result-label {
-    font-size: 28px;
-    font-weight: 800;
-    margin-bottom: 8px;
-  }
-  .result.spam .result-label { color: #f87171; }
-  .result.ham .result-label { color: #4ade80; }
-  .result-meta {
-    font-size: 13px;
-    color: #94a3b8;
-  }
-  .logout {
-    background: none;
-    border: 1px solid #334155;
-    color: #94a3b8;
-    font-size: 13px;
-    padding: 6px 14px;
-    border-radius: 6px;
-    width: auto;
-    cursor: pointer;
-    margin-bottom: 20px;
-  }
-  .logout:hover { border-color: #f87171; color: #f87171; background: none; }
-  .user-bar {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 24px;
-  }
-  .user-name { font-size: 13px; color: #94a3b8; }
-  .badge {
-    display: inline-block;
-    padding: 2px 10px;
-    border-radius: 20px;
-    font-size: 11px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    margin-bottom: 4px;
-  }
-  .badge-blue { background: rgba(59,130,246,0.15); color: #60a5fa; }
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --ink:      #0e1117;
+  --ink-2:    #1c2230;
+  --ink-3:    #2a3347;
+  --smoke:    #f5f6f8;
+  --fog:      #eceef2;
+  --mist:     #d8dce6;
+  --slate:    #8892a4;
+  --steel:    #5c6678;
+  --text:     #0e1117;
+  --text-2:   #3d4757;
+  --text-3:   #8892a4;
+  --signal:   #e63757;
+  --signal-s: rgba(230,55,87,0.1);
+  --signal-b: rgba(230,55,87,0.2);
+  --safe:     #00b37d;
+  --safe-s:   rgba(0,179,125,0.08);
+  --safe-b:   rgba(0,179,125,0.2);
+  --accent:   #2455e8;
+  --accent-s: rgba(36,85,232,0.08);
+  --accent-b: rgba(36,85,232,0.2);
+  --radius:   8px;
+  --radius-lg:14px;
+  --shadow:   0 1px 3px rgba(0,0,0,0.06), 0 4px 16px rgba(0,0,0,0.04);
+  --shadow-lg:0 4px 24px rgba(0,0,0,0.1), 0 1px 4px rgba(0,0,0,0.06);
+}
+
+body {
+  font-family: 'Inter', -apple-system, sans-serif;
+  background: var(--smoke);
+  color: var(--text);
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── Auth pages ── */
+.auth-wrap {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+}
+
+#auth-page { display: block; }
+#app-page { display: none; }
+
+.auth-panel {
+  background: var(--ink);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 48px;
+  position: relative;
+  overflow: hidden;
+}
+
+.auth-panel::before {
+  content: '';
+  position: absolute;
+  width: 480px;
+  height: 480px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(36,85,232,0.18) 0%, transparent 70%);
+  top: -80px;
+  right: -80px;
+  pointer-events: none;
+}
+
+.auth-panel::after {
+  content: '';
+  position: absolute;
+  width: 320px;
+  height: 320px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(230,55,87,0.1) 0%, transparent 70%);
+  bottom: 60px;
+  left: -60px;
+  pointer-events: none;
+}
+
+.panel-logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  position: relative;
+  z-index: 1;
+}
+
+.panel-logo-mark {
+  width: 36px;
+  height: 36px;
+  background: var(--signal);
+  border-radius: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.panel-logo-mark svg { width: 18px; height: 18px; fill: #fff; }
+
+.panel-logo-name {
+  font-size: 15px;
+  font-weight: 600;
+  color: #fff;
+  letter-spacing: -0.2px;
+}
+
+.panel-body {
+  position: relative;
+  z-index: 1;
+}
+
+.panel-stat {
+  display: inline-block;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 52px;
+  font-weight: 400;
+  color: #fff;
+  line-height: 1;
+  letter-spacing: -2px;
+  margin-bottom: 14px;
+}
+
+.panel-stat span {
+  color: var(--signal);
+}
+
+.panel-headline {
+  font-size: 20px;
+  font-weight: 500;
+  color: rgba(255,255,255,0.85);
+  line-height: 1.4;
+  margin-bottom: 32px;
+  max-width: 320px;
+}
+
+.panel-features {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.panel-feature {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 13px;
+  color: rgba(255,255,255,0.5);
+}
+
+.panel-feature-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--signal);
+  flex-shrink: 0;
+}
+
+.panel-footer {
+  font-size: 12px;
+  color: rgba(255,255,255,0.25);
+  position: relative;
+  z-index: 1;
+}
+
+/* ── Auth Form side ── */
+.auth-form-side {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 48px;
+  background: #fff;
+}
+
+.auth-form-box {
+  width: 100%;
+  max-width: 380px;
+}
+
+.auth-form-title {
+  font-size: 24px;
+  font-weight: 600;
+  color: var(--text);
+  letter-spacing: -0.4px;
+  margin-bottom: 6px;
+}
+
+.auth-form-sub {
+  font-size: 14px;
+  color: var(--text-3);
+  margin-bottom: 36px;
+}
+
+.auth-tabs {
+  display: flex;
+  gap: 0;
+  background: var(--fog);
+  border-radius: var(--radius);
+  padding: 3px;
+  margin-bottom: 28px;
+}
+
+.auth-tab {
+  flex: 1;
+  padding: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  font-family: inherit;
+  background: none;
+  border: none;
+  border-radius: 6px;
+  color: var(--text-3);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.auth-tab.active {
+  background: #fff;
+  color: var(--text);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+}
+
+.form-field { margin-bottom: 18px; }
+
+.form-label {
+  display: block;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-2);
+  margin-bottom: 7px;
+  letter-spacing: 0.1px;
+}
+
+.form-input-wrap { position: relative; }
+
+.form-input {
+  width: 100%;
+  background: var(--smoke);
+  border: 1.5px solid var(--fog);
+  border-radius: var(--radius);
+  padding: 11px 14px;
+  color: var(--text);
+  font-size: 14px;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.form-input:focus {
+  border-color: var(--accent);
+  background: #fff;
+}
+
+.form-input.error { border-color: var(--signal); }
+
+.form-input-icon {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-3);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+}
+
+.form-input-icon svg { width: 16px; height: 16px; }
+
+.form-error {
+  font-size: 12px;
+  color: var(--signal);
+  margin-top: 5px;
+  display: none;
+}
+
+.form-error.show { display: block; }
+
+.alert-box {
+  padding: 11px 14px;
+  border-radius: var(--radius);
+  font-size: 13px;
+  margin-bottom: 18px;
+  display: none;
+}
+
+.alert-box.show { display: block; }
+.alert-box.error { background: var(--signal-s); border: 1px solid var(--signal-b); color: #c41f3b; }
+.alert-box.success { background: var(--safe-s); border: 1px solid var(--safe-b); color: #008a5f; }
+
+.btn-submit {
+  width: 100%;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius);
+  padding: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  letter-spacing: 0.1px;
+  transition: background 0.15s, transform 0.1s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.btn-submit:hover { background: #1a44d4; }
+.btn-submit:active { transform: scale(0.99); }
+.btn-submit:disabled { background: var(--mist); color: var(--text-3); cursor: not-allowed; transform: none; }
+
+.divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 22px 0;
+  font-size: 12px;
+  color: var(--text-3);
+}
+.divider::before, .divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--fog);
+}
+
+.demo-creds {
+  background: var(--smoke);
+  border: 1px solid var(--fog);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+  font-size: 12px;
+  color: var(--text-3);
+  line-height: 1.7;
+}
+
+.demo-creds strong { color: var(--text-2); font-weight: 500; }
+
+.btn-google {
+  width: 100%;
+  background: #fff;
+  color: var(--text);
+  border: 1.5px solid var(--mist);
+  border-radius: var(--radius);
+  padding: 11px 14px;
+  font-size: 14px;
+  font-weight: 500;
+  font-family: inherit;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  transition: background 0.15s, border-color 0.15s;
+  margin-bottom: 16px;
+}
+.btn-google:hover { background: var(--smoke); border-color: var(--slate); }
+.btn-google svg { width: 18px; height: 18px; flex-shrink: 0; }
+
+.google-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 18px 0;
+  font-size: 12px;
+  color: var(--text-3);
+}
+.google-divider::before, .google-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--fog);
+}
+
+/* ── App ── */
+.topbar {
+  height: 56px;
+  background: #fff;
+  border-bottom: 1px solid var(--fog);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 28px;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.topbar-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.topbar-logo-mark {
+  width: 28px;
+  height: 28px;
+  background: var(--signal);
+  border-radius: 7px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.topbar-logo-mark svg { width: 14px; height: 14px; fill: #fff; }
+.topbar-name { font-size: 14px; font-weight: 600; color: var(--text); letter-spacing: -0.2px; }
+
+.topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.user-badge {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 12px 5px 5px;
+  background: var(--smoke);
+  border: 1px solid var(--fog);
+  border-radius: 24px;
+  font-size: 13px;
+  color: var(--text-2);
+  font-weight: 500;
+}
+
+.user-avatar {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  letter-spacing: 0.2px;
+}
+
+.btn-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: var(--radius);
+  border: 1px solid var(--fog);
+  background: none;
+  color: var(--text-3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s;
+  font-family: inherit;
+}
+
+.btn-icon svg { width: 16px; height: 16px; }
+.btn-icon:hover { border-color: var(--mist); color: var(--text-2); background: var(--smoke); }
+.btn-icon.danger:hover { border-color: var(--signal-b); color: var(--signal); }
+
+/* ── Main layout ── */
+.app-main {
+  max-width: 1160px;
+  margin: 0 auto;
+  padding: 32px 28px;
+  display: grid;
+  grid-template-columns: 1fr 360px;
+  gap: 24px;
+  align-items: start;
+}
+
+@media (max-width: 860px) {
+  .auth-wrap { grid-template-columns: 1fr; }
+  .auth-panel { display: none; }
+  .app-main { grid-template-columns: 1fr; }
+}
+
+/* ── Stats ── */
+.stats-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+  margin-bottom: 24px;
+}
+
+.stat-tile {
+  background: #fff;
+  border: 1px solid var(--fog);
+  border-radius: var(--radius-lg);
+  padding: 18px 20px;
+  position: relative;
+  overflow: hidden;
+}
+
+.stat-tile::before {
+  content: '';
+  position: absolute;
+  top: 0; right: 0;
+  width: 60px; height: 60px;
+  border-radius: 0 var(--radius-lg) 0 60px;
+  opacity: 0.06;
+}
+
+.stat-tile.total::before { background: var(--accent); }
+.stat-tile.spam::before { background: var(--signal); }
+.stat-tile.ham::before { background: var(--safe); }
+
+.stat-num {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 28px;
+  font-weight: 500;
+  color: var(--text);
+  letter-spacing: -1px;
+  line-height: 1;
+  margin-bottom: 6px;
+}
+
+.stat-tile.spam .stat-num { color: var(--signal); }
+.stat-tile.ham .stat-num { color: var(--safe); }
+
+.stat-label {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-3);
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+}
+
+/* ── Classifier card ── */
+.card {
+  background: #fff;
+  border: 1px solid var(--fog);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+.card-head {
+  padding: 20px 24px 0;
+  border-bottom: 1px solid var(--fog);
+  padding-bottom: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.card-head-left { display: flex; align-items: center; gap: 12px; }
+
+.card-icon-wrap {
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--accent-s);
+}
+
+.card-icon-wrap svg { width: 17px; height: 17px; }
+
+.card-title { font-size: 14px; font-weight: 600; color: var(--text); }
+.card-sub { font-size: 12px; color: var(--text-3); margin-top: 1px; }
+
+.card-body { padding: 24px; }
+
+/* ── Textarea + analyze ── */
+.msg-area {
+  width: 100%;
+  background: var(--smoke);
+  border: 1.5px solid var(--fog);
+  border-radius: var(--radius);
+  padding: 14px;
+  color: var(--text);
+  font-size: 14px;
+  font-family: 'Inter', sans-serif;
+  line-height: 1.65;
+  resize: vertical;
+  min-height: 130px;
+  outline: none;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.msg-area:focus { border-color: var(--accent); background: #fff; }
+.msg-area::placeholder { color: var(--text-3); }
+
+.input-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 10px;
+  margin-bottom: 0;
+}
+
+.char-count {
+  font-size: 11px;
+  color: var(--text-3);
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.btn-analyze {
+  background: var(--ink);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius);
+  padding: 10px 20px;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: background 0.15s, transform 0.1s;
+  letter-spacing: 0.1px;
+}
+
+.btn-analyze:hover { background: var(--ink-2); }
+.btn-analyze:active { transform: scale(0.98); }
+.btn-analyze:disabled { background: var(--fog); color: var(--text-3); cursor: not-allowed; transform: none; }
+
+.btn-analyze svg { width: 15px; height: 15px; }
+
+/* ── Spinner ── */
+.spin {
+  width: 15px; height: 15px;
+  border: 2px solid rgba(255,255,255,0.3);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── Result ── */
+.result-area {
+  margin-top: 20px;
+  border-radius: var(--radius);
+  overflow: hidden;
+  display: none;
+}
+
+.result-area.show { display: block; }
+
+.result-banner {
+  padding: 16px 20px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.result-area.spam .result-banner { background: var(--signal-s); border: 1px solid var(--signal-b); border-radius: var(--radius); }
+.result-area.ham .result-banner { background: var(--safe-s); border: 1px solid var(--safe-b); border-radius: var(--radius); }
+
+.result-icon-circle {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.result-area.spam .result-icon-circle { background: var(--signal-b); }
+.result-area.ham .result-icon-circle { background: var(--safe-b); }
+
+.result-icon-circle svg { width: 20px; height: 20px; }
+.result-area.spam .result-icon-circle svg { color: var(--signal); }
+.result-area.ham .result-icon-circle svg { color: var(--safe); }
+
+.result-verdict {
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.3px;
+}
+
+.result-area.spam .result-verdict { color: var(--signal); }
+.result-area.ham .result-verdict { color: var(--safe); }
+
+.result-blurb { font-size: 13px; color: var(--text-2); margin-top: 2px; }
+
+.result-meta {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+  flex-wrap: wrap;
+}
+
+.meta-chip {
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 500;
+  font-family: 'JetBrains Mono', monospace;
+  letter-spacing: 0.2px;
+}
+
+.result-area.spam .meta-chip { background: var(--signal-b); color: var(--signal); }
+.result-area.ham .meta-chip { background: var(--safe-b); color: var(--safe); }
+
+/* ── History ── */
+.history-head-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.btn-clear {
+  background: none;
+  border: 1px solid var(--fog);
+  color: var(--text-3);
+  border-radius: 6px;
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 500;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.15s;
+  letter-spacing: 0.1px;
+}
+
+.btn-clear:hover { border-color: var(--signal-b); color: var(--signal); }
+
+.history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 520px;
+  overflow-y: auto;
+  padding-right: 2px;
+}
+
+.history-list::-webkit-scrollbar { width: 3px; }
+.history-list::-webkit-scrollbar-track { background: transparent; }
+.history-list::-webkit-scrollbar-thumb { background: var(--mist); border-radius: 3px; }
+
+.history-entry {
+  background: var(--smoke);
+  border: 1px solid var(--fog);
+  border-radius: var(--radius);
+  padding: 11px 14px;
+  cursor: default;
+  transition: border-color 0.15s;
+  position: relative;
+  padding-left: 18px;
+}
+
+.history-entry::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 3px;
+  border-radius: 3px 0 0 3px;
+}
+
+.history-entry.spam::before { background: var(--signal); }
+.history-entry.ham::before { background: var(--safe); }
+.history-entry:hover { border-color: var(--mist); }
+
+.history-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 5px;
+}
+
+.history-tag {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  padding: 2px 8px;
+  border-radius: 20px;
+}
+
+.history-entry.spam .history-tag { background: var(--signal-s); color: var(--signal); }
+.history-entry.ham .history-tag { background: var(--safe-s); color: var(--safe); }
+
+.history-time {
+  font-size: 10px;
+  color: var(--text-3);
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.history-txt {
+  font-size: 12px;
+  color: var(--text-2);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-bottom: 4px;
+  line-height: 1.4;
+}
+
+.history-conf {
+  font-size: 10px;
+  color: var(--text-3);
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--text-3);
+}
+
+.empty-state svg {
+  width: 36px; height: 36px;
+  margin: 0 auto 12px;
+  display: block;
+  color: var(--mist);
+}
+
+.empty-state p { font-size: 13px; }
+.empty-state small { font-size: 11px; display: block; margin-top: 4px; color: var(--mist); }
+
+/* ── API error ── */
+.api-error {
+  padding: 10px 14px;
+  background: var(--signal-s);
+  border: 1px solid var(--signal-b);
+  border-radius: var(--radius);
+  font-size: 12px;
+  color: var(--signal);
+  margin-top: 12px;
+  display: none;
+}
+
+.api-error.show { display: block; }
+
+/* ── Progress bar ── */
+.conf-bar-wrap {
+  margin-top: 14px;
+}
+
+.conf-bar-label {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: var(--text-3);
+  margin-bottom: 5px;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.conf-bar {
+  height: 4px;
+  background: var(--fog);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.conf-bar-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.5s ease;
+}
+
+.result-area.spam .conf-bar-fill { background: var(--signal); }
+.result-area.ham .conf-bar-fill { background: var(--safe); }
 </style>
 </head>
 <body>
 
-<div class="card" id="login-card">
-  <div class="badge badge-blue">🔐 Secure Login</div>
-  <h1>Spam Classifier</h1>
-  <p class="subtitle">Sign in to access the spam detection API</p>
-  <div class="error" id="login-error"></div>
-  <label>Username</label>
-  <input type="text" id="username" placeholder="Enter username" />
-  <label>Password</label>
-  <input type="password" id="password" placeholder="Enter password" />
-  <button onclick="login()">Sign In</button>
-  <p style="margin-top:16px;font-size:12px;color:#475569;text-align:center">
-    Demo: username = <strong>farzeen</strong> / password = <strong>password123</strong>
-  </p>
+<!-- AUTH PAGE -->
+<div id="auth-page" class="auth-wrap">
+  <!-- Left panel -->
+  <div class="auth-panel">
+    <div class="panel-logo">
+      <div class="panel-logo-mark">
+        <svg viewBox="0 0 24 24"><path d="M12 2L4 6v6c0 5.5 3.5 10.7 8 12 4.5-1.3 8-6.5 8-12V6L12 2z" fill="currentColor"/></svg>
+      </div>
+      <span class="panel-logo-name">SpamGuard</span>
+    </div>
+
+    <div class="panel-body">
+      <div class="panel-stat"><span>98</span>.4%</div>
+      <p class="panel-headline">Accuracy on 5,000+ real-world email and SMS samples.</p>
+      <div class="panel-features">
+        <div class="panel-feature"><div class="panel-feature-dot"></div>Instant classification — no waiting</div>
+        <div class="panel-feature"><div class="panel-feature-dot"></div>Per-user history stored securely</div>
+        <div class="panel-feature"><div class="panel-feature-dot"></div>Confidence scores for every result</div>
+        <div class="panel-feature"><div class="panel-feature-dot"></div>JWT-authenticated, multi-account support</div>
+      </div>
+    </div>
+
+    <div class="panel-footer">© 2025 SpamGuard. All rights reserved.</div>
+  </div>
+
+  <!-- Right: form -->
+  <div class="auth-form-side">
+    <div class="auth-form-box">
+      <div class="auth-form-title" id="auth-title">Welcome back</div>
+      <div class="auth-form-sub" id="auth-sub">Sign in to your account to continue</div>
+
+      <div class="auth-tabs">
+        <button class="auth-tab active" id="tab-login" onclick="switchTab('login')">Sign in</button>
+        <button class="auth-tab" id="tab-register" onclick="switchTab('register')">Create account</button>
+      </div>
+
+      <div class="alert-box" id="auth-alert"></div>
+
+      <!-- Google OAuth button -->
+      <button type="button" class="btn-google" onclick="handleGoogleLogin()">
+        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+          <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+          <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
+          <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+        </svg>
+        Continue with Google
+      </button>
+
+      <div class="google-divider">or sign in with email</div>
+      <div id="form-login">
+        <div class="form-field">
+          <label class="form-label">Email address</label>
+          <input type="email" class="form-input" id="login-email" placeholder="you@example.com" autocomplete="email" />
+          <div class="form-error" id="login-email-err">Enter a valid email</div>
+        </div>
+        <div class="form-field">
+          <label class="form-label">Password</label>
+          <div class="form-input-wrap">
+            <input type="password" class="form-input" id="login-pass" placeholder="••••••••" autocomplete="current-password" style="padding-right: 40px;" />
+            <span class="form-input-icon" onclick="togglePw('login-pass', this)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+            </span>
+          </div>
+          <div class="form-error" id="login-pass-err">Password required</div>
+        </div>
+
+        <button type="button" class="btn-submit" onclick="handleLogin()">Sign in</button>
+
+        <div class="divider">Or try demo</div>
+
+        <div class="demo-creds">
+          <strong>Demo credentials:</strong><br/>
+          Email: <code>demo@example.com</code><br/>
+          Pass: <code>demo123</code>
+        </div>
+      </div>
+
+      <!-- Register form -->
+      <div id="form-register" style="display: none;">
+        <div class="form-field">
+          <label class="form-label">Full name</label>
+          <input type="text" class="form-input" id="reg-name" placeholder="Jane Doe" />
+          <div class="form-error" id="reg-name-err">Name required</div>
+        </div>
+        <div class="form-field">
+          <label class="form-label">Email address</label>
+          <input type="email" class="form-input" id="reg-email" placeholder="you@example.com" />
+          <div class="form-error" id="reg-email-err">Enter a valid email</div>
+        </div>
+        <div class="form-field">
+          <label class="form-label">Password</label>
+          <div class="form-input-wrap">
+            <input type="password" class="form-input" id="reg-pass" placeholder="••••••••" style="padding-right: 40px;" />
+            <span class="form-input-icon" onclick="togglePw('reg-pass', this)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+            </span>
+          </div>
+          <div class="form-error" id="reg-pass-err">Password must be 8+ chars</div>
+        </div>
+
+        <button type="button" class="btn-submit" onclick="handleRegister()">Create account</button>
+      </div>
+    </div>
+  </div>
 </div>
 
-<div class="card" id="app-card" style="display:none">
-  <div class="user-bar">
-    <div>
-      <div class="badge badge-blue">✅ Authenticated</div>
-      <div class="user-name">Logged in as <strong id="logged-user"></strong></div>
+<!-- APP PAGE -->
+<div id="app-page">
+  <!-- Topbar -->
+  <div class="topbar">
+    <div class="topbar-left">
+      <div class="topbar-logo-mark">
+        <svg viewBox="0 0 24 24"><path d="M12 2L4 6v6c0 5.5 3.5 10.7 8 12 4.5-1.3 8-6.5 8-12V6L12 2z" fill="currentColor"/></svg>
+      </div>
+      <div class="topbar-name">SpamGuard</div>
     </div>
-    <button class="logout" onclick="logout()">Logout</button>
+
+    <div class="topbar-right">
+      <button class="btn-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+      </button>
+      <button class="btn-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+      </button>
+      <div class="user-badge">
+        <div class="user-avatar" id="user-init">D</div>
+        <span id="user-email">demo@example.com</span>
+      </div>
+      <button class="btn-icon" onclick="handleLogout()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+      </button>
+    </div>
   </div>
-  <h1>Spam Detector</h1>
-  <p class="subtitle" style="margin-bottom:24px">Paste any email or SMS text below</p>
-  <div class="error" id="predict-error"></div>
-  <label>Message Text</label>
-  <textarea id="message" placeholder="e.g. Congratulations! You won a free prize. Click here to claim..."></textarea>
-  <button onclick="predict()" id="predict-btn">Analyze Message</button>
-  <div class="result" id="result">
-    <div class="result-label" id="result-label"></div>
-    <div class="result-meta" id="result-meta"></div>
+
+  <!-- Main -->
+  <div class="app-main">
+    <!-- Classifier -->
+    <div>
+      <!-- Stats -->
+      <div class="stats-row">
+        <div class="stat-tile total">
+          <div class="stat-num" id="stat-total">0</div>
+          <div class="stat-label">Analyzed</div>
+        </div>
+        <div class="stat-tile spam">
+          <div class="stat-num" id="stat-spam">0</div>
+          <div class="stat-label">Spam detected</div>
+        </div>
+        <div class="stat-tile ham">
+          <div class="stat-num" id="stat-ham">0</div>
+          <div class="stat-label">Legitimate</div>
+        </div>
+      </div>
+
+      <!-- Classifier Card -->
+      <div class="card">
+        <div class="card-head">
+          <div class="card-head-left">
+            <div class="card-icon-wrap">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+            </div>
+            <div>
+              <div class="card-title">Analyze message</div>
+              <div class="card-sub">Check if email or SMS is spam</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card-body">
+          <textarea class="msg-area" id="msg-input" placeholder="Paste your email or SMS here..."></textarea>
+          <div class="input-footer">
+            <span class="char-count"><span id="char-count">0</span> / 5000</span>
+            <button class="btn-analyze" id="analyze-btn" onclick="handleAnalyze()">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+              Analyze
+            </button>
+          </div>
+
+          <!-- Result -->
+          <div class="result-area" id="result-area">
+            <div class="result-banner">
+              <div class="result-icon-circle">
+                <svg id="result-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+              </div>
+              <div>
+                <div class="result-verdict" id="result-verdict">Legitimate</div>
+                <div class="result-blurb" id="result-blurb">This message appears to be safe</div>
+              </div>
+            </div>
+            <div style="padding: 0 20px 16px;">
+              <div class="result-meta">
+                <span class="meta-chip" id="meta-conf">Confidence: 98.2%</span>
+                <span class="meta-chip" id="meta-type">Type: Email</span>
+              </div>
+              <div class="conf-bar-wrap">
+                <div class="conf-bar-label">
+                  <span>Classification confidence</span>
+                  <span id="conf-pct">98.2%</span>
+                </div>
+                <div class="conf-bar">
+                  <div class="conf-bar-fill" id="conf-bar-fill" style="width: 98.2%;"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="api-error" id="api-error"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- History sidebar -->
+    <div class="card">
+      <div class="card-head">
+        <div class="card-head-left">
+          <div class="card-icon-wrap" style="background: rgba(245,158,11,0.08);">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          </div>
+          <div>
+            <div class="card-title">History</div>
+            <div class="card-sub">Recent analyses</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card-body">
+        <div class="history-head-row" style="margin-bottom: 16px;">
+          <span style="font-size: 12px; font-weight: 500; color: var(--text-2);">Latest</span>
+          <button class="btn-clear" onclick="clearHistory()">Clear</button>
+        </div>
+
+        <div class="history-list" id="history-list">
+          <div class="empty-state">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"/></svg>
+            <p>No history yet</p>
+            <small>Analyses will appear here</small>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </div>
 
 <script>
-  const API = '';
-  let token = localStorage.getItem('token');
-  let username = localStorage.getItem('username');
+// ── CONFIG ──
+const API = '';
+const GOOGLE_CLIENT_ID = 'YOUR_GOOGLE_CLIENT_ID'; // Replace with your Google OAuth client ID
 
-  if (token) showApp();
+// ── STATE ──
+let currentUser = null;
+let token = localStorage.getItem('sg_token');
+let history = JSON.parse(localStorage.getItem('sg_history') || '[]');
+let stats = JSON.parse(localStorage.getItem('sg_stats') || '{"total":0,"spam":0,"ham":0}');
 
-  async function login() {
-    const u = document.getElementById('username').value.trim();
-    const p = document.getElementById('password').value.trim();
-    const err = document.getElementById('login-error');
-    err.style.display = 'none';
+// Auto-login if token exists
+if (token) {
+  const savedUser = localStorage.getItem('sg_user');
+  if (savedUser) {
+    currentUser = JSON.parse(savedUser);
+    document.getElementById('user-email').textContent = currentUser.email;
+    document.getElementById('user-init').textContent = currentUser.email[0].toUpperCase();
+    goToApp();
+    updateStatsDisplay();
+    renderHistory();
+  }
+}
 
-    if (!u || !p) {
-      err.textContent = 'Please enter username and password';
-      err.style.display = 'block';
-      return;
-    }
+// ── AUTH ──
+function switchTab(tab) {
+  const loginTab = document.getElementById('tab-login');
+  const regTab = document.getElementById('tab-register');
+  const loginForm = document.getElementById('form-login');
+  const regForm = document.getElementById('form-register');
+  const title = document.getElementById('auth-title');
+  const sub = document.getElementById('auth-sub');
 
-    try {
-      const res = await fetch(`${API}/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username: u, password: p })
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.detail || 'Login failed');
-      token = data.access_token;
-      username = u;
-      localStorage.setItem('token', token);
-      localStorage.setItem('username', username);
-      showApp();
-    } catch (e) {
-      err.textContent = e.message;
-      err.style.display = 'block';
-    }
+  if (tab === 'login') {
+    loginTab.classList.add('active');
+    regTab.classList.remove('active');
+    loginForm.style.display = 'block';
+    regForm.style.display = 'none';
+    title.textContent = 'Welcome back';
+    sub.textContent = 'Sign in to your account to continue';
+  } else {
+    loginTab.classList.remove('active');
+    regTab.classList.add('active');
+    loginForm.style.display = 'none';
+    regForm.style.display = 'block';
+    title.textContent = 'Create account';
+    sub.textContent = 'Join SpamGuard to start filtering';
   }
 
-  function showApp() {
-    document.getElementById('login-card').style.display = 'none';
-    document.getElementById('app-card').style.display = 'block';
-    document.getElementById('logged-user').textContent = username;
+  document.getElementById('auth-alert').classList.remove('show', 'error', 'success');
+}
+
+function togglePw(id, btn) {
+  const input = document.getElementById(id);
+  const isPassword = input.type === 'password';
+  input.type = isPassword ? 'text' : 'password';
+}
+
+function validateEmail(email) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
+
+async function handleLogin() {
+  const email = document.getElementById('login-email').value.trim();
+  const pass = document.getElementById('login-pass').value;
+  const alertBox = document.getElementById('auth-alert');
+  const btn = document.querySelector('#form-login .btn-submit');
+
+  let valid = true;
+  if (!validateEmail(email)) {
+    document.getElementById('login-email-err').classList.add('show');
+    valid = false;
+  } else {
+    document.getElementById('login-email-err').classList.remove('show');
+  }
+  if (!pass) {
+    document.getElementById('login-pass-err').classList.add('show');
+    valid = false;
+  } else {
+    document.getElementById('login-pass-err').classList.remove('show');
+  }
+  if (!valid) return;
+
+  btn.disabled = true;
+  btn.textContent = 'Signing in...';
+
+  try {
+    const username = email.split('@')[0];
+    const res = await fetch(`${API}/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password: pass })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || 'Invalid credentials');
+
+    token = data.access_token;
+    currentUser = { email, name: username };
+    localStorage.setItem('sg_token', token);
+    localStorage.setItem('sg_user', JSON.stringify(currentUser));
+
+    document.getElementById('user-email').textContent = email;
+    document.getElementById('user-init').textContent = email[0].toUpperCase();
+
+    alertBox.className = 'alert-box show success';
+    alertBox.textContent = '✓ Signed in successfully';
+    setTimeout(goToApp, 700);
+  } catch(e) {
+    alertBox.className = 'alert-box show error';
+    alertBox.textContent = e.message;
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Sign in';
+  }
+}
+
+async function handleRegister() {
+  const name = document.getElementById('reg-name').value.trim();
+  const email = document.getElementById('reg-email').value.trim();
+  const pass = document.getElementById('reg-pass').value;
+  const alertBox = document.getElementById('auth-alert');
+  const btn = document.querySelector('#form-register .btn-submit');
+
+  let valid = true;
+  if (!name) { document.getElementById('reg-name-err').classList.add('show'); valid = false; }
+  else document.getElementById('reg-name-err').classList.remove('show');
+  if (!validateEmail(email)) { document.getElementById('reg-email-err').classList.add('show'); valid = false; }
+  else document.getElementById('reg-email-err').classList.remove('show');
+  if (pass.length < 8) { document.getElementById('reg-pass-err').classList.add('show'); valid = false; }
+  else document.getElementById('reg-pass-err').classList.remove('show');
+  if (!valid) return;
+
+  btn.disabled = true;
+  btn.textContent = 'Creating account...';
+
+  try {
+    const username = email.split('@')[0];
+    const res = await fetch(`${API}/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password: pass })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || 'Registration failed');
+
+    token = data.access_token;
+    currentUser = { email, name };
+    localStorage.setItem('sg_token', token);
+    localStorage.setItem('sg_user', JSON.stringify(currentUser));
+
+    document.getElementById('user-email').textContent = email;
+    document.getElementById('user-init').textContent = name[0].toUpperCase();
+
+    alertBox.className = 'alert-box show success';
+    alertBox.textContent = '✓ Account created successfully';
+    setTimeout(goToApp, 700);
+  } catch(e) {
+    alertBox.className = 'alert-box show error';
+    alertBox.textContent = e.message;
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Create account';
+  }
+}
+
+function handleGoogleLogin() {
+  const alertBox = document.getElementById('auth-alert');
+  alertBox.className = 'alert-box show error';
+  alertBox.textContent = 'Google OAuth requires setup. See instructions below to configure your Google Client ID.';
+}
+
+function goToApp() {
+  document.getElementById('auth-page').style.display = 'none';
+  document.getElementById('app-page').style.display = 'block';
+}
+
+function handleLogout() {
+  currentUser = null;
+  token = null;
+  history = [];
+  stats = { total: 0, spam: 0, ham: 0 };
+  localStorage.removeItem('sg_token');
+  localStorage.removeItem('sg_user');
+  localStorage.removeItem('sg_history');
+  localStorage.removeItem('sg_stats');
+  document.getElementById('auth-page').style.display = 'grid';
+  document.getElementById('app-page').style.display = 'none';
+  document.getElementById('login-email').value = '';
+  document.getElementById('login-pass').value = '';
+  document.getElementById('auth-alert').className = 'alert-box';
+}
+
+// ── CLASSIFIER ──
+document.getElementById('msg-input').addEventListener('input', (e) => {
+  const count = e.target.value.length;
+  document.getElementById('char-count').textContent = count;
+  if (count > 5000) {
+    e.target.value = e.target.value.substring(0, 5000);
+  }
+});
+
+async function handleAnalyze() {
+  const text = document.getElementById('msg-input').value.trim();
+  const btn = document.getElementById('analyze-btn');
+  const errorDiv = document.getElementById('api-error');
+
+  if (!text) {
+    errorDiv.className = 'api-error show';
+    errorDiv.textContent = 'Please enter a message to analyze';
+    return;
   }
 
-  function logout() {
-    localStorage.removeItem('token');
-    localStorage.removeItem('username');
-    token = null;
-    document.getElementById('login-card').style.display = 'block';
-    document.getElementById('app-card').style.display = 'none';
-    document.getElementById('result').style.display = 'none';
+  btn.disabled = true;
+  btn.innerHTML = '<div class="spin"></div> Analyzing...';
+  errorDiv.classList.remove('show');
+
+  try {
+    const res = await fetch(`${API}/predict`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({ text })
+    });
+
+    if (res.status === 401) { handleLogout(); return; }
+
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || 'Prediction failed');
+
+    const isSpam = data.label === 'spam';
+    const confidence = data.confidence;
+
+    displayResult(text, isSpam, confidence);
+    addToHistory(text, isSpam, confidence, data.latency_ms);
+    updateStats(isSpam);
+  } catch(e) {
+    errorDiv.className = 'api-error show';
+    errorDiv.textContent = e.message;
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg> Analyze';
+  }
+}
+
+function displayResult(text, isSpam, confidence) {
+  const resultArea = document.getElementById('result-area');
+  const verdict = document.getElementById('result-verdict');
+  const blurb = document.getElementById('result-blurb');
+  const confPct = document.getElementById('conf-pct');
+  const metaConf = document.getElementById('meta-conf');
+  const confBarFill = document.getElementById('conf-bar-fill');
+
+  if (isSpam) {
+    resultArea.className = 'result-area show spam';
+    verdict.textContent = 'Likely spam';
+    blurb.textContent = 'This message shows characteristics of spam or phishing';
+    resultArea.querySelector('.result-icon-circle svg').innerHTML = '<path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2"/>';
+  } else {
+    resultArea.className = 'result-area show ham';
+    verdict.textContent = 'Legitimate';
+    blurb.textContent = 'This message appears to be safe and authentic';
+    resultArea.querySelector('.result-icon-circle svg').innerHTML = '<polyline points="20 6 9 17 4 12" stroke="currentColor" stroke-width="2"/>';
   }
 
-  async function predict() {
-    const text = document.getElementById('message').value.trim();
-    const err = document.getElementById('predict-error');
-    const btn = document.getElementById('predict-btn');
-    const result = document.getElementById('result');
-    err.style.display = 'none';
-    result.style.display = 'none';
+  const confPercent = Math.round(confidence * 100);
+  confPct.textContent = confPercent + '%';
+  metaConf.textContent = `Confidence: ${confPercent}%`;
+  confBarFill.style.width = confPercent + '%';
+}
 
-    if (!text) {
-      err.textContent = 'Please enter a message';
-      err.style.display = 'block';
-      return;
-    }
+function addToHistory(text, isSpam, confidence, latency) {
+  const entry = {
+    text: text.substring(0, 60) + (text.length > 60 ? '...' : ''),
+    isSpam,
+    confidence: Math.round(confidence * 100),
+    latency: latency ? latency.toFixed(1) : null,
+    time: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
+  };
 
-    btn.disabled = true;
-    btn.textContent = 'Analyzing...';
+  history.unshift(entry);
+  if (history.length > 50) history.pop();
+  localStorage.setItem('sg_history', JSON.stringify(history));
 
-    try {
-      const res = await fetch(`${API}/predict`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({ text })
-      });
+  renderHistory();
+}
 
-      if (res.status === 401) {
-        logout();
-        return;
-      }
+function updateStatsDisplay() {
+  document.getElementById('stat-total').textContent = stats.total;
+  document.getElementById('stat-spam').textContent = stats.spam;
+  document.getElementById('stat-ham').textContent = stats.ham;
+}
 
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.detail || 'Prediction failed');
+function renderHistory() {
+  const list = document.getElementById('history-list');
 
-      const isSpam = data.label === 'spam';
-      result.className = `result ${data.label}`;
-      document.getElementById('result-label').textContent = isSpam ? '🚨 SPAM' : '✅ HAM';
-      document.getElementById('result-meta').textContent =
-        `Confidence: ${(data.confidence * 100).toFixed(1)}% · Latency: ${data.latency_ms}ms`;
-      result.style.display = 'block';
-    } catch (e) {
-      err.textContent = e.message;
-      err.style.display = 'block';
-    } finally {
-      btn.disabled = false;
-      btn.textContent = 'Analyze Message';
-    }
+  if (history.length === 0) {
+    list.innerHTML = `
+      <div class="empty-state">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"/></svg>
+        <p>No history yet</p>
+        <small>Analyses will appear here</small>
+      </div>
+    `;
+    return;
   }
 
-  document.addEventListener('keydown', e => {
-    if (e.key === 'Enter' && document.getElementById('login-card').style.display !== 'none') login();
-  });
+  list.innerHTML = history.map(entry => `
+    <div class="history-entry ${entry.isSpam ? 'spam' : 'ham'}">
+      <div class="history-row">
+        <span class="history-tag">${entry.isSpam ? 'SPAM' : 'HAM'}</span>
+        <span class="history-time">${entry.time}</span>
+      </div>
+      <div class="history-txt">${entry.text}</div>
+      <div class="history-conf">Confidence: ${entry.confidence}%${entry.latency ? ` · ${entry.latency}ms` : ''}</div>
+    </div>
+  `).join('');
+}
+
+function clearHistory() {
+  if (confirm('Clear all history?')) {
+    history = [];
+    stats = { total: 0, spam: 0, ham: 0 };
+    localStorage.setItem('sg_history', '[]');
+    localStorage.setItem('sg_stats', JSON.stringify(stats));
+    renderHistory();
+    updateStatsDisplay();
+    document.getElementById('result-area').className = 'result-area';
+  }
+}
+
+function updateStats(isSpam) {
+  stats.total++;
+  if (isSpam) stats.spam++;
+  else stats.ham++;
+  localStorage.setItem('sg_stats', JSON.stringify(stats));
+  updateStatsDisplay();
+}
+
+// Initialize
+document.getElementById('msg-input').focus();
 </script>
+
 </body>
 </html>
