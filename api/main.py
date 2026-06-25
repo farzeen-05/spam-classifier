@@ -105,7 +105,6 @@ def google_login():
 @app.get("/auth/google/callback")
 async def google_callback(code: str):
     async with httpx.AsyncClient() as client:
-        # Exchange code for tokens
         token_res = await client.post(
             "https://oauth2.googleapis.com/token",
             data={
@@ -120,7 +119,6 @@ async def google_callback(code: str):
         if "error" in token_data:
             raise HTTPException(400, token_data["error"])
 
-        # Get user info
         userinfo_res = await client.get(
             "https://www.googleapis.com/oauth2/v3/userinfo",
             headers={"Authorization": f"Bearer {token_data['access_token']}"}
@@ -130,10 +128,6 @@ async def google_callback(code: str):
     email = userinfo.get("email")
     name = userinfo.get("name", email)
 
-    if not email:
-        raise HTTPException(400, "Could not get email from Google")
-
-    # Issue your own JWT
     payload = {
         "sub": email,
         "email": email,
@@ -143,10 +137,16 @@ async def google_callback(code: str):
     }
     your_jwt = jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
 
-    # Redirect to frontend with token
-    return RedirectResponse(
-        f"https://spam-classifier.duckdns.org/?token={your_jwt}"
+    # Set cookie and redirect to home
+    response = RedirectResponse(url="/")
+    response.set_cookie(
+        key="sg_token",
+        value=your_jwt,
+        httponly=False,
+        max_age=86400,
+        samesite="lax"
     )
+    return response
 
 @app.post("/predict", response_model=PredictResponse)
 def predict(request: PredictRequest, username: str = Depends(verify_token)):

@@ -1435,28 +1435,23 @@ function updateStats(isSpam) {
 
 // ── INIT — runs after full page load ──
 window.addEventListener('load', () => {
-  const urlParams = new URLSearchParams(window.location.search);
-  const googleToken = urlParams.get('token');
+  // Check cookie first (Google OAuth sets this)
+  const cookieToken = document.cookie
+    .split('; ')
+    .find(row => row.startsWith('sg_token='))
+    ?.split('=')[1];
 
-  if (googleToken) {
-    // Step 1: store token and user
-    localStorage.setItem('sg_token', googleToken);
+  if (cookieToken) {
+    localStorage.setItem('sg_token', cookieToken);
     try {
-      const payload = JSON.parse(atob(googleToken.split('.')[1]));
-      const user = {
-        email: payload.email || payload.sub,
-        name: payload.name || payload.sub
-      };
+      const payload = JSON.parse(atob(cookieToken.split('.')[1]));
+      const user = { email: payload.email || payload.sub, name: payload.name || payload.sub };
       localStorage.setItem('sg_user', JSON.stringify(user));
-    } catch(e) {
-      localStorage.setItem('sg_user', JSON.stringify({ email: 'user@gmail.com', name: 'User' }));
-    }
-    // Step 2: reload clean URL — on reload token comes from localStorage
-    window.location.href = '/';
-    return;
+    } catch(e) {}
+    // Clear cookie
+    document.cookie = 'sg_token=; max-age=0';
   }
 
-  // Normal load — check localStorage
   const storedToken = localStorage.getItem('sg_token');
   const storedUser = localStorage.getItem('sg_user');
 
@@ -1470,6 +1465,7 @@ window.addEventListener('load', () => {
     renderHistory();
   }
 });
+ 
 </script>
 </body>
 </html>
