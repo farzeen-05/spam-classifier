@@ -1290,41 +1290,40 @@ async function handleRegister() {
 }
 
 // ── GOOGLE OAUTH CALLBACK HANDLER ──
-const urlParams = new URLSearchParams(window.location.search);
-const googleToken = urlParams.get('token');
-if (googleToken) {
-  try {
-    const payload = JSON.parse(atob(googleToken.split('.')[1]));
-    currentUser = {
-      email: payload.email || payload.sub,
-      name: payload.name || payload.sub
-    };
-    token = googleToken;
-    localStorage.setItem('sg_token', token);
-    localStorage.setItem('sg_user', JSON.stringify(currentUser));
-    window.history.replaceState({}, document.title, '/');
-    document.getElementById('user-email').textContent = currentUser.email;
-    document.getElementById('user-init').textContent = currentUser.email[0].toUpperCase();
-    goToApp();
-    updateStatsDisplay();
-    renderHistory();
-  } catch(e) {
-    console.error('Google token error', e);
+window.addEventListener('DOMContentLoaded', () => {
+  const urlParams = new URLSearchParams(window.location.search);
+  const googleToken = urlParams.get('token');
+  if (googleToken) {
+    try {
+      const payload = JSON.parse(atob(googleToken.split('.')[1]));
+      currentUser = {
+        email: payload.email || payload.sub,
+        name: payload.name || payload.sub
+      };
+      token = googleToken;
+      localStorage.setItem('sg_token', token);
+      localStorage.setItem('sg_user', JSON.stringify(currentUser));
+      window.history.replaceState({}, document.title, '/');
+      document.getElementById('user-email').textContent = currentUser.email;
+      document.getElementById('user-init').textContent = currentUser.name[0].toUpperCase();
+      goToApp();
+      updateStatsDisplay();
+      renderHistory();
+    } catch(e) {
+      console.error('Google token error', e);
+    }
+  } else if (token) {
+    const savedUser = localStorage.getItem('sg_user');
+    if (savedUser) {
+      currentUser = JSON.parse(savedUser);
+      document.getElementById('user-email').textContent = currentUser.email;
+      document.getElementById('user-init').textContent = currentUser.email[0].toUpperCase();
+      goToApp();
+      updateStatsDisplay();
+      renderHistory();
+    }
   }
-}
-
-// ── AUTO LOGIN IF TOKEN EXISTS ──
-if (token && !googleToken) {
-  const savedUser = localStorage.getItem('sg_user');
-  if (savedUser) {
-    currentUser = JSON.parse(savedUser);
-    document.getElementById('user-email').textContent = currentUser.email;
-    document.getElementById('user-init').textContent = currentUser.email[0].toUpperCase();
-    goToApp();
-    updateStatsDisplay();
-    renderHistory();
-  }
-}
+});
 
 // ── CLASSIFIER ──
 document.getElementById('msg-input').addEventListener('input', (e) => {
