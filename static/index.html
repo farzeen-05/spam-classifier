@@ -1121,7 +1121,7 @@ const API = '';
 
 // ── STATE ──
 let currentUser = null;
-let token = localStorage.getItem('sg_token');
+let token = null;
 let history = JSON.parse(localStorage.getItem('sg_history') || '[]');
 let stats = JSON.parse(localStorage.getItem('sg_stats') || '{"total":0,"spam":0,"ham":0}');
 
@@ -1289,42 +1289,6 @@ async function handleRegister() {
   }
 }
 
-// ── GOOGLE OAUTH CALLBACK HANDLER ──
-window.addEventListener('DOMContentLoaded', () => {
-  const urlParams = new URLSearchParams(window.location.search);
-  const googleToken = urlParams.get('token');
-  if (googleToken) {
-    try {
-      const payload = JSON.parse(atob(googleToken.split('.')[1]));
-      currentUser = {
-        email: payload.email || payload.sub,
-        name: payload.name || payload.sub
-      };
-      token = googleToken;
-      localStorage.setItem('sg_token', token);
-      localStorage.setItem('sg_user', JSON.stringify(currentUser));
-      window.history.replaceState({}, document.title, '/');
-      document.getElementById('user-email').textContent = currentUser.email;
-      document.getElementById('user-init').textContent = currentUser.name[0].toUpperCase();
-      goToApp();
-      updateStatsDisplay();
-      renderHistory();
-    } catch(e) {
-      console.error('Google token error', e);
-    }
-  } else if (token) {
-    const savedUser = localStorage.getItem('sg_user');
-    if (savedUser) {
-      currentUser = JSON.parse(savedUser);
-      document.getElementById('user-email').textContent = currentUser.email;
-      document.getElementById('user-init').textContent = currentUser.email[0].toUpperCase();
-      goToApp();
-      updateStatsDisplay();
-      renderHistory();
-    }
-  }
-});
-
 // ── CLASSIFIER ──
 document.getElementById('msg-input').addEventListener('input', (e) => {
   const count = e.target.value.length;
@@ -1469,9 +1433,43 @@ function updateStats(isSpam) {
   updateStatsDisplay();
 }
 
-// Initialize
-document.getElementById('msg-input').focus();
-</script>
+// ── INIT — runs after full page load ──
+window.addEventListener('load', () => {
+  const urlParams = new URLSearchParams(window.location.search);
+  const googleToken = urlParams.get('token');
 
+  if (googleToken) {
+    // Step 1: store token and user
+    localStorage.setItem('sg_token', googleToken);
+    try {
+      const payload = JSON.parse(atob(googleToken.split('.')[1]));
+      const user = {
+        email: payload.email || payload.sub,
+        name: payload.name || payload.sub
+      };
+      localStorage.setItem('sg_user', JSON.stringify(user));
+    } catch(e) {
+      localStorage.setItem('sg_user', JSON.stringify({ email: 'user@gmail.com', name: 'User' }));
+    }
+    // Step 2: reload clean URL — on reload token comes from localStorage
+    window.location.href = '/';
+    return;
+  }
+
+  // Normal load — check localStorage
+  const storedToken = localStorage.getItem('sg_token');
+  const storedUser = localStorage.getItem('sg_user');
+
+  if (storedToken && storedUser) {
+    token = storedToken;
+    currentUser = JSON.parse(storedUser);
+    document.getElementById('user-email').textContent = currentUser.email;
+    document.getElementById('user-init').textContent = (currentUser.name || currentUser.email)[0].toUpperCase();
+    goToApp();
+    updateStatsDisplay();
+    renderHistory();
+  }
+});
+</script>
 </body>
 </html>
