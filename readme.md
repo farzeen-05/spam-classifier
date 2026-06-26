@@ -1,0 +1,1 @@
+I built an end-to-end MLOps pipeline for spam classification — not just a model, but a complete production system with automated testing, deployment, experiment tracking, and a live frontend with authentication. The goal was to learn every stage of how ML goes from a notebook to production.
